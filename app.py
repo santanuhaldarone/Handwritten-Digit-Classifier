@@ -1,40 +1,28 @@
 import streamlit as st
 from streamlit_drawable_canvas import st_canvas
-from model import KNNModelHandler
-from preprocess import preprocess
-from PIL import Image
+import joblib
+from preprocess import preprocess_mnist_style
 
-st.set_page_config(page_title="KNN Explorer", layout="centered")
-st.title("🧠 KNN Explorer - Handwritten Digit Classifier")
-st.markdown("Draw a digit (0-9) in the canvas below and click **Predict** to classify it.")
+model = joblib.load("mnist_knn_model.pkl")
 
-@st.cache_resource
-def load_model():
-    return KNNModelHandler()
-
-model = load_model()
+st.title("🧠 MNIST KNN Digit Classifier")
+st.markdown("Draw a digit and classify using KNN (trained on MNIST)")
 
 canvas_result = st_canvas(
-    fill_color="white",
-    stroke_width=15,
-    stroke_color="black",
-    background_color="white",
-    width=192,
-    height=192,
+    fill_color="#000000",
+    stroke_width=12,
+    stroke_color="#FFFFFF",
+    background_color="#000000",
+    width=280,
+    height=280,
     drawing_mode="freedraw",
     key="canvas"
 )
 
-if st.button("🔍 Predict"):
+if st.button("Predict"):
     if canvas_result.image_data is not None:
-        image = Image.fromarray((255 - canvas_result.image_data[:, :, 0]).astype('uint8'))
-        img_array = preprocess(image)
-        pred, conf = model.predict(img_array)
-        st.success(f"Predicted Digit: **{pred}**\nConfidence: **{conf:.2f}**")
+        input_data = preprocess_mnist_style(canvas_result.image_data.astype('uint8'))
+        prediction = model.predict(input_data)[0]
+        st.header(f"📍 Predicted Digit: {prediction}")
     else:
-        st.warning("✏️ Please draw a digit first!")
-
-if st.button("🔄 Clear"):
-    st.experimental_rerun()
-
-st.caption("📊 Model trained on sklearn's digits dataset (8x8 grayscale). Built with ❤️ using Streamlit.")
+        st.warning("Please draw something first before predicting.")
